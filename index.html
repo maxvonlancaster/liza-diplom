@@ -84,11 +84,38 @@
     </div>
 
     <div class="sidebar-bottom">
-      <div class="status-row" id="status-row">
-        <span class="status-dot" id="status-dot"></span>
-        <span id="status-text">Перевірка...</span>
-      </div>
+
+  <div class="status-row" id="status-row">
+    <span class="status-dot" id="status-dot"></span>
+    <span id="status-text">Перевірка...</span>
+  </div>
+
+  <div class="auth-section">
+    <div class="auth-title">Авторизація</div>
+
+    <div class="sidebar-form-group">
+      <input
+        type="text"
+        id="username"
+        placeholder="Username">
     </div>
+
+    <div class="sidebar-form-group">
+      <input
+        type="password"
+        id="password"
+        placeholder="Password">
+    </div>
+
+    <button type="button" class="submit-btn-sidebar" id="login-btn">
+      <i class="fa fa-sign-in-alt"></i>
+      Увійти
+    </button>
+
+    <div id="login-status" class="login-status"></div>
+  </div>
+
+</div>
   </aside>
 
   <!-- MAIN -->

@@ -1290,3 +1290,23 @@ body { display: flex; }
   color: var(--text3);
   cursor: not-allowed;
 }
+
+
+.auth-section {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+.auth-title {
+    font-size: 13px;
+    margin-bottom: 10px;
+    opacity: 0.8;
+}
+
+.login-status {
+    margin-top: 10px;
+    font-size: 12px;
+    opacity: 0.8;
+    word-break: break-word;
+}

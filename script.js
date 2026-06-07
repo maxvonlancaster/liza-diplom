@@ -25,6 +25,10 @@ const inputArea    = document.getElementById('input-area');
 const documentsForm = document.getElementById('documents-form');
 const docSubmissionForm = document.getElementById('doc-submission-form');
 
+document
+  .getElementById("login-btn")
+  .addEventListener("click", login);
+
 // ---- State ----
 let chatHistory = [];   // [{q, a}, ...]
 let isLoading   = false;
@@ -57,6 +61,58 @@ function setupSidebarForm() {
     e.preventDefault();
     await submitSidebarDocuments();
   });
+}
+
+async function login() {
+
+  const username =
+    document.getElementById("username").value.trim();
+
+  const password =
+    document.getElementById("password").value.trim();
+
+  const status =
+    document.getElementById("login-status");
+
+  try {
+
+    status.innerText = "Вхід...";
+
+    console.log("Attempting login with", { username, password });
+    const response = await fetch(
+      `${API}/api/login`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          username,
+          password
+        })
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error("Login failed");
+    }
+
+    const data = await response.json();
+
+    localStorage.setItem(
+      "access_token",
+      data.access_token
+    );
+
+    status.innerText = "✅ Успішний вхід";
+
+  } catch (error) {
+
+    console.error(error);
+
+    status.innerText =
+      "❌ Помилка авторизації";
+  }
 }
 
 function addSidebarDocEntry() {
@@ -139,9 +195,11 @@ async function submitSidebarDocuments() {
     const payload = { website, documents };
     console.log('Submitting documents:', payload);
 
+    const token = localStorage.getItem("access_token");
+
     const res = await fetch(`${API}/api/qa/documents`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
       body: JSON.stringify(payload)
     });
 
