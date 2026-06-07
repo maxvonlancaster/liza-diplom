@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css"/>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Unbounded:wght@300;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" crossorigin="anonymous"/>
+    <title>QA Assistant</title>
+</head>
+<body>
+
+  <!-- SIDEBAR -->
+  <aside id="sidebar">
+    <div class="sidebar-top">
+      <div class="brand">
+        <span class="brand-icon">⬡</span>
+        <span class="brand-text">QA<em>rag</em></span>
+      </div>
+
+      <div class="upload-zone" id="upload-zone">
+        <input type="file" id="file-input" accept=".pdf,.docx,.txt,.md" multiple hidden>
+        <div class="upload-inner" id="upload-trigger">
+          <i class="fa fa-arrow-up-from-bracket"></i>
+          <span>Завантажити документ</span>
+          <small>PDF · DOCX · TXT · MD</small>
+        </div>
+        <div class="upload-progress" id="upload-progress" style="display:none">
+          <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+          <span id="progress-label">Індексування...</span>
+        </div>
+      </div>
+
+      <div class="section-label">БАЗА ЗНАНЬ</div>
+      <ul class="doc-list" id="doc-list">
+        <li class="doc-empty">Документи відсутні</li>
+      </ul>
+    </div>
+
+    <div class="sidebar-bottom">
+      <div class="status-row" id="status-row">
+        <span class="status-dot" id="status-dot"></span>
+        <span id="status-text">Перевірка...</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main id="main">
+
+    <!-- WELCOME SCREEN -->
+    <div class="view welcome-view" id="welcome-view">
+      <div class="welcome-content">
+        <div class="welcome-hex">⬡</div>
+        <h1 class="welcome-title">QA Assistant</h1>
+        <p class="welcome-sub">Інтелектуальний пошук по документації.<br>Завантажте документи та ставте питання.</p>
+        <div class="welcome-chips">
+          <button class="chip" onclick="setPrompt('Які критерії прийнятності для цієї функції?')">Критерії прийнятності</button>
+          <button class="chip" onclick="setPrompt('Які тест-кейси покривають авторизацію?')">Тест-кейси авторизації</button>
+          <button class="chip" onclick="setPrompt('Опиши процес регресійного тестування')">Регресійне тестування</button>
+          <button class="chip" onclick="setPrompt('Які вимоги до продуктивності системи?')">Вимоги до продуктивності</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHAT VIEW -->
+    <div class="view chat-view" id="chat-view" style="display:none">
+      <div class="messages" id="messages"></div>
+    </div>
+
+    <!-- INPUT FORM -->
+    <div id="input-area">
+      <div class="input-wrapper">
+        <textarea id="message" rows="1" placeholder="Задайте питання по документації..."></textarea>
+        <button class="send-btn" id="send-btn" title="Надіслати (Shift+Enter)">
+          <i class="fa fa-paper-plane"></i>
+        </button>
+      </div>
+      <div class="input-meta">
+        <span class="docs-count" id="docs-count">0 документів у базі</span>
+        <span class="disclaimer">Відповіді формуються на основі завантаженої документації</span>
+      </div>
+    </div>
+
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
