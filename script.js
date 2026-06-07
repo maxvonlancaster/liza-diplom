@@ -10,20 +10,169 @@ const chatView     = document.getElementById('chat-view');
 const messagesEl   = document.getElementById('messages');
 const messageInput = document.getElementById('message');
 const sendBtn      = document.getElementById('send-btn');
-const fileInput    = document.getElementById('file-input');
-const uploadTrigger= document.getElementById('upload-trigger');
-const uploadZone   = document.getElementById('upload-zone');
-const uploadProgress = document.getElementById('upload-progress');
+// const fileInput    = document.getElementById('file-input');
+// const uploadTrigger= document.getElementById('upload-trigger');
+// const uploadZone   = document.getElementById('upload-zone');
+// const uploadProgress = document.getElementById('upload-progress');
 const progressFill = document.getElementById('progress-fill');
 const progressLabel= document.getElementById('progress-label');
 const docList      = document.getElementById('doc-list');
 const docsCount    = document.getElementById('docs-count');
 const statusDot    = document.getElementById('status-dot');
 const statusText   = document.getElementById('status-text');
+const modeSelector = document.getElementById('mode-selector');
+const inputArea    = document.getElementById('input-area');
+const documentsForm = document.getElementById('documents-form');
+const docSubmissionForm = document.getElementById('doc-submission-form');
 
 // ---- State ----
 let chatHistory = [];   // [{q, a}, ...]
 let isLoading   = false;
+let currentMode = 'qa'; // 'qa' or 'documents'
+let docEntryCount = 1;
+
+// ================================================
+//  INIT
+// ================================================
+(async function init() {
+  await checkHealth();
+  renderDocList([]);
+  setupSidebarForm();
+})();
+
+// ================================================
+//  SIDEBAR — DOCUMENT FORM
+// ================================================
+function setupSidebarForm() {
+  const toggleBtn = document.getElementById('toggle-form-btn');
+  const form = document.getElementById('sidebar-doc-form');
+  
+  toggleBtn.addEventListener('click', () => {
+    const isHidden = form.style.display === 'none';
+    form.style.display = isHidden ? 'flex' : 'none';
+    toggleBtn.classList.toggle('open');
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    await submitSidebarDocuments();
+  });
+}
+
+function addSidebarDocEntry() {
+  const container = document.getElementById('sidebar-docs-container');
+  const index = docEntryCount++;
+  
+  const entry = document.createElement('div');
+  entry.className = 'sidebar-doc-entry';
+  entry.dataset.index = index;
+  entry.innerHTML = `
+    <div class="entry-title">
+      <span>Документ ${index + 1}</span>
+      <button type="button" class="entry-remove-btn" onclick="removeSidebarDocEntry(${index})">
+        <i class="fa fa-times"></i>
+      </button>
+    </div>
+    <div class="sidebar-form-group">
+      <label for="sidebar-title-${index}">Назва</label>
+      <input type="text" id="sidebar-title-${index}" placeholder="Homepage overview" required>
+    </div>
+    <div class="sidebar-form-group">
+      <label for="sidebar-content-${index}">Вміст</label>
+      <textarea id="sidebar-content-${index}" placeholder="Вміст..." rows="2" required></textarea>
+    </div>
+    <div class="sidebar-form-group">
+      <label for="sidebar-source-${index}">URL</label>
+      <input type="url" id="sidebar-source-${index}" placeholder="https://example.com/" required>
+    </div>
+    <div class="sidebar-form-group">
+      <label for="sidebar-section-${index}">Розділ</label>
+      <input type="text" id="sidebar-section-${index}" placeholder="homepage">
+    </div>
+  `;
+  
+  container.appendChild(entry);
+  updateSidebarRemoveButtonVisibility();
+}
+
+function removeSidebarDocEntry(index) {
+  const entry = document.querySelector(`[data-index="${index}"]`);
+  if (entry) {
+    entry.remove();
+    updateSidebarRemoveButtonVisibility();
+  }
+}
+
+function updateSidebarRemoveButtonVisibility() {
+  const entries = document.querySelectorAll('.sidebar-doc-entry');
+  entries.forEach(entry => {
+    const removeBtn = entry.querySelector('.entry-remove-btn');
+    removeBtn.style.display = entries.length > 1 ? 'block' : 'none';
+  });
+}
+
+async function submitSidebarDocuments() {
+  const website = document.getElementById('sidebar-website').value;
+  const entries = document.querySelectorAll('.sidebar-doc-entry');
+  
+  const documents = Array.from(entries).map(entry => {
+    const index = entry.dataset.index;
+    return {
+      title: document.getElementById(`sidebar-title-${index}`).value,
+      content: document.getElementById(`sidebar-content-${index}`).value,
+      source: document.getElementById(`sidebar-source-${index}`).value,
+      metadata: {
+        section: document.getElementById(`sidebar-section-${index}`).value || 'general'
+      }
+    };
+  });
+
+  if (!website || documents.length === 0) {
+    showToast('Заповніть все поля', 'error');
+    return;
+  }
+
+  const submitBtn = document.querySelector('.submit-btn-sidebar');
+  submitBtn.disabled = true;
+
+  try {
+    const payload = { website, documents };
+    console.log('Submitting documents:', payload);
+
+    const res = await fetch(`${API}/api/qa/documents`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error('Response:', res.status, errText);
+      throw new Error(`HTTP ${res.status}: ${errText}`);
+    }
+
+    const data = await res.json();
+    console.log('Response:', data);
+
+    showToast(`✓ Документи успішно завантажені! (${documents.length})`, 'success');
+    document.getElementById('sidebar-doc-form').reset();
+    
+    // Reset to single entry
+    const container = document.getElementById('sidebar-docs-container');
+    const allEntries = container.querySelectorAll('.sidebar-doc-entry');
+    allEntries.forEach((entry, idx) => {
+      if (idx > 0) entry.remove();
+    });
+    docEntryCount = 1;
+    updateSidebarRemoveButtonVisibility();
+
+  } catch (err) {
+    console.error('Error:', err);
+    showToast(`Помилка завантаження: ${err.message}`, 'error');
+  } finally {
+    submitBtn.disabled = false;
+  }
+}
 
 // ================================================
 //  INIT
@@ -95,23 +244,23 @@ function renderDocList(docs) {
 // ================================================
 //  DOCUMENTS — UPLOAD
 // ================================================
-uploadTrigger.addEventListener('click', () => fileInput.click());
+// uploadTrigger.addEventListener('click', () => fileInput.click());
 
-fileInput.addEventListener('change', () => {
-  if (fileInput.files.length > 0) uploadFiles(fileInput.files);
-});
+// fileInput.addEventListener('change', () => {
+//   if (fileInput.files.length > 0) uploadFiles(fileInput.files);
+// });
 
 // drag-and-drop
-uploadZone.addEventListener('dragover', e => {
-  e.preventDefault();
-  uploadZone.classList.add('drag-over');
-});
-uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
-uploadZone.addEventListener('drop', e => {
-  e.preventDefault();
-  uploadZone.classList.remove('drag-over');
-  if (e.dataTransfer.files.length) uploadFiles(e.dataTransfer.files);
-});
+// uploadZone.addEventListener('dragover', e => {
+//   e.preventDefault();
+//   uploadZone.classList.add('drag-over');
+// });
+// uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+// uploadZone.addEventListener('drop', e => {
+//   e.preventDefault();
+//   uploadZone.classList.remove('drag-over');
+//   if (e.dataTransfer.files.length) uploadFiles(e.dataTransfer.files);
+// });
 
 async function uploadFiles(files) {
   for (const file of files) {
@@ -121,7 +270,7 @@ async function uploadFiles(files) {
 }
 
 async function uploadSingleFile(file) {
-  showUploadProgress(0, `Завантаження: ${file.name}`);
+  // showUploadProgress(0, `Завантаження: ${file.name}`);
 
   const formData = new FormData();
   formData.append('file', file);
@@ -148,12 +297,12 @@ async function uploadSingleFile(file) {
     showToast(`Помилка завантаження: ${err.message}`, 'error');
   } finally {
     hideUploadProgress();
-    fileInput.value = '';
+    // fileInput.value = '';
   }
 }
 
 function showUploadProgress(pct, label) {
-  uploadTrigger.style.display = 'none';
+  // uploadTrigger.style.display = 'none';
   uploadProgress.style.display = 'block';
   setProgress(pct, label);
 }
@@ -164,7 +313,7 @@ function setProgress(pct, label) {
 }
 
 function hideUploadProgress() {
-  uploadTrigger.style.display = 'flex';
+  // uploadTrigger.style.display = 'flex';
   uploadProgress.style.display = 'none';
   setProgress(0);
 }
@@ -239,19 +388,25 @@ async function sendMessage() {
     removeTyping(typingId);
     
     // Handle different response formats
-    let responseText = '';
     if (data.status === 'failed') {
-      responseText = `❌ Помилка аналізу:\n${data.reasons?.join('\n') || 'Невідома помилка'}`;
+      const responseText = `❌ Помилка аналізу:\n${data.reasons?.join('\n') || 'Невідома помилка'}`;
+      addMessage('assistant', responseText, data.sources || []);
+      chatHistory.push({ q: text, a: responseText });
+    } else if (data.case === 'web_page' || data.bug_reports) {
+      // This is a QA response with bug reports
+      addQACard(data);
+      chatHistory.push({ q: text, a: data });
     } else if (data.answer) {
-      responseText = data.answer;
+      addMessage('assistant', data.answer, data.sources || []);
+      chatHistory.push({ q: text, a: data.answer });
     } else if (data.response) {
-      responseText = data.response;
+      addMessage('assistant', data.response, data.sources || []);
+      chatHistory.push({ q: text, a: data.response });
     } else {
-      responseText = JSON.stringify(data, null, 2);
+      const responseText = JSON.stringify(data, null, 2);
+      addMessage('assistant', responseText, data.sources || []);
+      chatHistory.push({ q: text, a: responseText });
     }
-    
-    addMessage('assistant', responseText, data.sources || []);
-    chatHistory.push({ q: text, a: responseText });
 
   } catch (err) {
     removeTyping(typingId);
@@ -293,6 +448,121 @@ function addMessage(role, text, sources = []) {
       <div class="msg-role">${roleLabel}</div>
       <div class="msg-text">${renderMarkdown(text)}</div>
       ${sourcesHTML}
+    </div>
+  `;
+
+  messagesEl.appendChild(div);
+  scrollToBottom();
+  return div;
+}
+
+// ================================================
+//  QA CARD — RENDER
+// ================================================
+function addQACard(data) {
+  const div = document.createElement('div');
+  div.className = 'message assistant';
+
+  // Case badge
+  const caseBadge = data.case ? `<span class="qa-case-badge">${esc(data.case)}</span>` : '';
+  
+  // Confidence level
+  let confidenceClass = 'low';
+  if (data.confidence >= 0.8) confidenceClass = 'high';
+  else if (data.confidence >= 0.6) confidenceClass = 'medium';
+  const confidenceBadge = data.confidence !== undefined 
+    ? `<span class="qa-confidence ${confidenceClass}">${Math.round(data.confidence * 100)}%</span>`
+    : '';
+
+  // Summary
+  const summaryHTML = data.summary ? `
+    <div class="qa-summary">
+      ${renderMarkdown(data.summary)}
+    </div>
+  ` : '';
+
+  // Bug reports
+  let bugReportsHTML = '';
+  if (data.bug_reports && data.bug_reports.length > 0) {
+    const reports = data.bug_reports.map(bug => `
+      <div class="bug-report">
+        <div class="bug-report-title">
+          <span>${esc(bug.title)}</span>
+          ${bug.severity ? `<span class="bug-severity ${bug.severity}">${bug.severity}</span>` : ''}
+        </div>
+        
+        ${bug.description ? `
+          <div class="bug-report-section">
+            <span class="bug-report-label">Опис</span>
+            <div class="bug-report-content">${esc(bug.description)}</div>
+          </div>
+        ` : ''}
+        
+        ${bug.steps_to_reproduce && bug.steps_to_reproduce.length > 0 ? `
+          <div class="bug-report-section">
+            <span class="bug-report-label">Кроки для відтворення</span>
+            <div class="bug-report-content">
+              <ol>${bug.steps_to_reproduce.map(step => `<li>${esc(step)}</li>`).join('')}</ol>
+            </div>
+          </div>
+        ` : ''}
+        
+        ${bug.expected_result ? `
+          <div class="bug-report-section">
+            <span class="bug-report-label">Очікуваний результат</span>
+            <div class="bug-report-content">${esc(bug.expected_result)}</div>
+          </div>
+        ` : ''}
+        
+        ${bug.actual_result ? `
+          <div class="bug-report-section">
+            <span class="bug-report-label">Фактичний результат</span>
+            <div class="bug-report-content">${esc(bug.actual_result)}</div>
+          </div>
+        ` : ''}
+        
+        ${bug.additional_context ? `
+          <div class="bug-report-section">
+            <span class="bug-report-label">Додатковий контекст</span>
+            <div class="bug-report-content">${esc(bug.additional_context)}</div>
+          </div>
+        ` : ''}
+      </div>
+    `).join('');
+
+    bugReportsHTML = `
+      <div class="bug-reports-container">
+        ${reports}
+      </div>
+    `;
+  }
+
+  // Related context
+  let contextHTML = '';
+  if (data.related_context) {
+    contextHTML = `
+      <div class="qa-context">
+        <div class="qa-context-label">
+          <i class="fa fa-circle-info"></i> ДОДАТКОВА ІНФОРМАЦІЯ
+        </div>
+        ${esc(data.related_context)}
+      </div>
+    `;
+  }
+
+  div.innerHTML = `
+    <div class="msg-avatar"><i class="fa fa-hexagon-nodes"></i></div>
+    <div class="msg-body">
+      <div class="msg-role">QA ASSIST</div>
+      <div class="qa-card">
+        <div class="qa-header">
+          ${caseBadge}
+          ${confidenceBadge}
+        </div>
+        ${summaryHTML}
+        ${bugReportsHTML}
+        ${contextHTML}
+      </div>
     </div>
   `;
 
