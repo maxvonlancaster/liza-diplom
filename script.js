@@ -77,6 +77,7 @@ async function login() {
   try {
 
     status.innerText = "Вхід...";
+    let section = document.getElementById("auth-section");
 
     console.log("Attempting login with", { username, password });
     const response = await fetch(
@@ -103,6 +104,8 @@ async function login() {
       "access_token",
       data.access_token
     );
+
+    section.classList.add("auth-section-hidden");
 
     status.innerText = "✅ Успішний вхід";
 
